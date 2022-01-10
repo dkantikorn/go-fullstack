@@ -19,28 +19,73 @@ type Server struct {
 	Router *mux.Router
 }
 
+func (server *Server) CreateDatabase(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) error {
+
+	connStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
+		DbUser,
+		DbPassword,
+		DbHost,
+		DbPort,
+		"postgres")
+
+	// connect to the postgres db just to be able to run the create db statement
+	db, err := gorm.Open(Dbdriver, connStr)
+	if err != nil {
+		return err
+	}
+
+	// check if db exists
+	stmt := fmt.Sprintf("SELECT * FROM pg_database WHERE datname = '%s';", DbName)
+	rs := db.Raw(stmt)
+	if rs.Error != nil {
+		return rs.Error
+	}
+
+	// if not create it
+	var rec = make(map[string]interface{})
+	if rs.Find(rec); len(rec) == 0 {
+		stmt := fmt.Sprintf("CREATE DATABASE %s WITH OWNER = %s ENCODING = 'UTF8' LC_COLLATE = 'en_US.utf8' LC_CTYPE = 'en_US.utf8' TABLESPACE = pg_default CONNECTION LIMIT = -1;", DbName, DbUser)
+		if rs := db.Exec(stmt); rs.Error != nil {
+			return rs.Error
+		}
+
+		// close db connection
+		defer db.DB().Close()
+	}
+	return nil
+}
+
 func (server *Server) Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) {
-
-	var err error
-
 	if Dbdriver == "mysql" {
-		DBURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", DbUser, DbPassword, DbHost, DbPort, DbName)
-		server.DB, err = gorm.Open(Dbdriver, DBURL)
-		if err != nil {
-			fmt.Printf("Cannot connect to %s database", Dbdriver)
+		if err := server.CreateDatabase(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName); err != nil {
+			fmt.Printf("Cannot create database %s with %s database server", DbName, Dbdriver)
 			log.Fatal("This is the error:", err)
 		} else {
-			fmt.Printf("We are connected to the %s database", Dbdriver)
+			var err error
+			DBURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", DbUser, DbPassword, DbHost, DbPort, DbName)
+			server.DB, err = gorm.Open(Dbdriver, DBURL)
+			if err != nil {
+				fmt.Printf("Cannot connect to %s database", Dbdriver)
+				log.Fatal("This is the error:", err)
+			} else {
+				fmt.Printf("We are connected to the %s database", Dbdriver)
+			}
 		}
 	}
 	if Dbdriver == "postgres" {
-		DBURL := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", DbHost, DbPort, DbUser, DbName, DbPassword)
-		server.DB, err = gorm.Open(Dbdriver, DBURL)
-		if err != nil {
-			fmt.Printf("Cannot connect to %s database", Dbdriver)
+		if err := server.CreateDatabase(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName); err != nil {
+			fmt.Printf("Cannot create database %s with %s database server", DbName, Dbdriver)
 			log.Fatal("This is the error:", err)
 		} else {
-			fmt.Printf("We are connected to the %s database", Dbdriver)
+			var err error
+			DBURL := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", DbHost, DbPort, DbUser, DbName, DbPassword)
+			server.DB, err = gorm.Open(Dbdriver, DBURL)
+			if err != nil {
+				fmt.Printf("Cannot connect to %s database", Dbdriver)
+				log.Fatal("This is the error:", err)
+			} else {
+				fmt.Printf("We are connected to the %s database", Dbdriver)
+			}
 		}
 	}
 

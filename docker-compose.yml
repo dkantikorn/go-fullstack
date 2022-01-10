@@ -1,22 +1,23 @@
 version: '3'
 services:
   app:
-    container_name: full_app
+    container_name: go_fullstack_app
     build: .
     ports: 
-      - 8080:8080 # Forward the exposed port 8080 on the container to port 8080 on the host machine
+      - ${APP_PORT}:8080 
     restart: on-failure
     volumes:
       - api:/usr/src/app/
     depends_on:
-      - postgres # This service depends on postgres. Start that first.
-      # - mysql # This service depends on mysql. Start that first.
+      - fullstack-postgres          # Uncomment this when using postgres.
+      # - fullstack-mysql               # Uncomment this when using mysql.
     networks:
-      - fullstack
+      - go_fullstack_network
 
-  postgres:
+
+  fullstack-postgres:
     image: postgres:latest
-    container_name: full_db
+    container_name: fullstack_db_postgres
     environment:
       - POSTGRES_USER=${DB_USER}  
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -27,27 +28,62 @@ services:
     volumes:
       - database_postgres:/var/lib/postgresql/data
     networks:
-      - fullstack
+      - go_fullstack_network
+    
+  fullstack-pgadmin:
+    image: dpage/pgadmin4
+    container_name: go_fullstack_pgadmin_container
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    depends_on:
+      - fullstack-postgres
+    ports:
+      - "5050:80"
+    networks:
+      - go_fullstack_network
+    restart: unless-stopped
 
-  # mysql:
+  
+  # fullstack-mysql:
   #   image: mysql:5.7
+  #   container_name: fullstack_db_mysql
   #   ports: 
   #     - 3306:3306
   #   environment: 
-  #     - MYSQL_DATABASE=${DB_NAME}
+  #     - MYSQL_ROOT_HOST=${DB_HOST} 
   #     - MYSQL_USER=${DB_USER}
   #     - MYSQL_PASSWORD=${DB_PASSWORD}
+  #     - MYSQL_DATABASE=${DB_NAME}
   #     - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
-  #     - DATABASE_HOST=${DB_HOST} 
   #   volumes:
-  #     - database_mysql:/var/lib/postgresql/data
+  #     - database_mysql:/var/lib/mysql
   #   networks:
-  #     - fullstack
+  #     - go_fullstack_network
+  
+  # go-fullstack-phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin
+  #   container_name: phpmyadmin_container
+  #   depends_on:
+  #     - go_fullstack_mysql
+  #   environment:
+  #     - PMA_HOST=fullstack-mysql # Note the "mysql". Must be the name of the what you used as the mysql service.
+  #     - PMA_USER=${DB_USER}
+  #     - PMA_PORT=${DB_PORT}
+  #     - PMA_PASSWORD=${DB_PASSWORD}
+  #   ports:
+  #     - 9090:80
+  #   restart: always
+  #   networks:
+  #     - go_fullstack_network
+
 
 volumes:
   api:
-  database_postgres:
+  database_postgres:                  # Uncomment this when using postgres.
+  #database_mysql:                    # Uncomment this when using mysql.
 
 # Networks to be created to facilitate communication between containers
 networks:
-  fullstack:
+  go_fullstack_network:
+    driver: bridge
