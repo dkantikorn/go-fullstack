@@ -13,9 +13,9 @@
 
 
 ## Docker
-![Docker Compose up](document/images/dockerComposeUp.png)
+![Docker Compose up](document/images/docker/dockerComposeUp.png)
 
-![Docker Compose up](document/images/dockerComposeUp2.png)
+![Docker Compose up](document/images/docker/dockerComposeUp2.png)
 
 
 ## Kubernetest
@@ -23,6 +23,6 @@
 
 ![Docker push publish image](document/images/k8s/docker-push.png)
 
-![Kubernetes service](document/images/k8s/sevice.png)
+![Kubernetes service](document/images/k8s/service.png)
 
 ![Kubernetes secret sensitive data](document/images/k8s/secret.png)
